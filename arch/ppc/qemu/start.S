@@ -503,7 +503,7 @@ _GLOBAL(saved_stack):
 #define SAVE_SPACE 320
 #else
 #define STKOFF 8
-#define SAVE_SPACE 144
+#define SAVE_SPACE 156
 #endif
 
 GLOBL(of_client_callback):

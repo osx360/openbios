@@ -13,7 +13,7 @@
     #define ULONG_SIZE 4
     #define STACKFRAME_MINSIZE 16
     #define STKOFF 8
-    #define SAVE_SPACE 144
+    #define SAVE_SPACE 156
   #endif
 #endif
 
