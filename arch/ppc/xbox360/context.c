@@ -17,6 +17,7 @@
 #include "libopenbios/initprogram.h"
 #include "libopenbios/sys_info.h"
 #include "arch/ppc/processor.h"
+#include "macosx/macosx.h"
 
 #define MAIN_STACK_SIZE 16384
 #define IMAGE_STACK_SIZE 4096*2
@@ -97,6 +98,8 @@ arch_init_program(void)
 {
     volatile struct context *ctx = __context;
     ucell entry, param;
+    char *macho;
+    unsigned long macho_top;
 
     /* According to IEEE 1275, PPC bindings:
      *
@@ -131,6 +134,25 @@ arch_init_program(void)
     feval("load-state >ls.entry @");
     entry = POP();
     ctx->pc = entry;
+
+    //
+    // Patch BootX if present.
+    // Entry is always within the first few pages.
+    //
+    gIsBootX = 0;
+    macho = (char*)(entry & ~(0xFFF));
+    for (int i = 0; i < 4; i++) {
+        macho_top = macho_get_top(macho);
+        if (macho_top)
+            break;
+
+        macho -= PAGE_SIZE;
+    }
+
+    if (macho_top) {
+        macosx_patch_bootx(macho, macho_top - (unsigned long)macho);
+        gIsBootX = 1;
+    }
 
     return 0;
 }

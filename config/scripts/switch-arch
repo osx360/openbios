@@ -364,6 +364,7 @@ for ARCH in $arch_list; do
     fi
     if [ "$xbox360" = "yes" ]; then
         mkdir -p $OBJDIR/target/arch/ppc/xbox360
+        mkdir -p $OBJDIR/target/arch/ppc/xbox360/macosx
     fi
     echo "ok."
 

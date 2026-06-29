@@ -170,6 +170,12 @@
   <object source="xbox360/main.c" flags="-I$(SRCDIR)/arch/ppc"/>
   <object source="xbox360/methods.c" flags="-I$(SRCDIR)/arch/ppc"/>
   <object source="xbox360/console.c" flags="-I$(SRCDIR)/arch/ppc"/>
+  <object source="xbox360/macosx/bootx.c" flags="-I$(SRCDIR)/arch/ppc"/>
+  <object source="xbox360/macosx/device_tree.c" flags="-I$(SRCDIR)/arch/ppc"/>
+  <object source="xbox360/macosx/macho.c" flags="-I$(SRCDIR)/arch/ppc"/>
+  <object source="xbox360/macosx/macosx.c" flags="-I$(SRCDIR)/arch/ppc"/>
+  <object source="xbox360/macosx/xnu_version.c" flags="-I$(SRCDIR)/arch/ppc"/>
+  <object source="xbox360/macosx/xnu.c" flags="-I$(SRCDIR)/arch/ppc"/>
  </library>
 
  <executable name="openbios-briq.elf" target="target" condition="BRIQ">

@@ -26,6 +26,7 @@
 #include "arch/ppc/processor.h"
 #include "drivers/usb.h"
 #include "xbox360/xbox360.h"
+#include "macosx/macosx.h"
 
 /************************************************************************/
 /*	RTAS (run-time abstraction services)				*/
@@ -114,6 +115,12 @@ static void
 ciface_quiesce( unsigned long args[], unsigned long ret[] )
 {
     printk("OF quiesce was called\n");
+
+    if (gIsBootX) {
+        printk("Handling Mac OS X patching/injection\n");
+        if (!macosx_patch())
+            panic("Failed to handle Mac OS X boot process");
+    }
 
     usb_exit();
     ob_ide_quiesce();
