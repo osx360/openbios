@@ -10,5 +10,6 @@
  <include href="hfsplus/build.xml"/>
  <include href="iso9660/build.xml"/>
  <include href="ext2/build.xml"/>
+ <include href="fatfs/build.xml"/>
 
 </build>

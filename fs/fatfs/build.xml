@@ -1,0 +1,9 @@
+<build>
+ <library name="fs" type="static" target="target">
+  <object source="diskio.c" flags="-I$(SRCDIR)/fs/" condition="FATFS"/>
+  <object source="fatfs_fs.c" condition="FATFS"/>
+  <object source="ff.c" condition="FATFS"/>
+  <object source="ffsystem.c" condition="FATFS"/>
+  <object source="ffunicode.c" condition="FATFS"/>
+ </library>
+</build>

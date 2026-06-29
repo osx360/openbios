@@ -39,6 +39,9 @@ modules_init( void )
 #ifdef CONFIG_EXT2
 	ext2_init();
 #endif
+#ifdef CONFIG_FATFS
+	fatfs_init();
+#endif
 #ifdef CONFIG_ISO9660
 	iso9660_init();
 #endif
