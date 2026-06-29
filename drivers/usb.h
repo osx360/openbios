@@ -150,6 +150,48 @@ struct usbdev {
 	void (*poll) (usbdev_t *dev);
 };
 
+typedef struct {
+	unsigned int blocksize;
+	unsigned int numblocks;
+	endpoint_t *bulk_in;
+	endpoint_t *bulk_out;
+	u8 quirks		: 7;
+	u8 usbdisk_created	: 1;
+	s8 ready;
+	u8 lun;
+	u8 num_luns;
+	void *data; /* For use by consumers of libpayload. */
+} usbmsc_inst_t;
+
+/* Possible values for quirks field. */
+enum {
+	/* Don't check for LUNs (force assumption that there's only one LUN). */
+	USB_MSC_QUIRK_NO_LUNS	= 1 << 0,
+	/* Never do a BULK_ONLY reset, just continue. This means that the device
+	   cannot recover from phase errors and won't detach automatically for
+	   unrecoverable errors. Do not use unless you have to. */
+	USB_MSC_QUIRK_NO_RESET	= 1 << 1,
+};
+
+/* Possible values for ready field. */
+enum {
+	USB_MSC_DETACHED = -1, /* Disk detached or out to lunch. */
+	USB_MSC_NOT_READY = 0, /* Disk not ready yet -- empty card reader */
+	USB_MSC_READY = 1,     /* Disk ready to communicate. */
+};
+
+#define MSC_INST(dev) ((usbmsc_inst_t*)(dev)->data)
+
+typedef enum { cbw_direction_data_in = 0x80, cbw_direction_data_out = 0
+} cbw_direction;
+
+int readwrite_blocks_512 (usbdev_t *dev, int start, int n, cbw_direction dir, u8 *buf);
+int readwrite_blocks (usbdev_t *dev, int start, int n, cbw_direction dir, u8 *buf);
+
+/* Force a device to enumerate as MSC, without checking class/protocol types.
+   It must still have a bulk endpoint pair and respond to MSC commands. */
+void usb_msc_force_init (usbdev_t *dev, u32 quirks);
+
 typedef enum { OHCI = 0, UHCI = 1, EHCI = 2, XHCI = 3} hc_type;
 
 struct usbdev_hc {
@@ -289,8 +331,8 @@ void detach_controller (hci_t *controller);
 void usb_poll (void);
 void init_device_entry (hci_t *controller, int num);
 
-void set_feature (usbdev_t *dev, int endp, int feature, int rtype);
-void get_status (usbdev_t *dev, int endp, int rtype, int len, void *data);
+int set_feature (usbdev_t *dev, int endp, int feature, int rtype);
+int get_status (usbdev_t *dev, int endp, int rtype, int len, void *data);
 void set_configuration (usbdev_t *dev);
 int clear_feature (usbdev_t *dev, int endp, int feature, int rtype);
 int clear_stall (endpoint_t *ep);
@@ -299,6 +341,7 @@ void usb_hub_init (usbdev_t *dev);
 void usb_hid_init (usbdev_t *dev);
 void usb_msc_init (usbdev_t *dev);
 void usb_generic_init (usbdev_t *dev);
+int is_usb_speed_ss(int speed);
 
 u8 *get_descriptor (usbdev_t *dev, unsigned char bmRequestType,
 		    int descType, int descIdx, int langID);

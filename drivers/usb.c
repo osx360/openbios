@@ -146,7 +146,7 @@ init_device_entry (hci_t *controller, int i)
 	controller->devices[i]->init (controller->devices[i]);
 }
 
-void
+int
 set_feature (usbdev_t *dev, int endp, int feature, int rtype)
 {
 	dev_req_t dr;
@@ -157,10 +157,10 @@ set_feature (usbdev_t *dev, int endp, int feature, int rtype)
 	dr.wValue = __cpu_to_le16(feature);
 	dr.wIndex = __cpu_to_le16(endp);
 	dr.wLength = 0;
-	dev->controller->control (dev, OUT, sizeof (dr), &dr, 0, 0);
+	return dev->controller->control (dev, OUT, sizeof (dr), &dr, 0, 0);
 }
 
-void
+int
 get_status (usbdev_t *dev, int intf, int rtype, int len, void *data)
 {
 	dev_req_t dr;
@@ -171,7 +171,7 @@ get_status (usbdev_t *dev, int intf, int rtype, int len, void *data)
 	dr.wValue = 0;
 	dr.wIndex = __cpu_to_le16(intf);
 	dr.wLength = __cpu_to_le16(len);
-	dev->controller->control (dev, IN, sizeof (dr), &dr, len, data);
+	return dev->controller->control (dev, IN, sizeof (dr), &dr, len, data);
 }
 
 u8 *
@@ -583,4 +583,10 @@ usb_generic_init (usbdev_t *dev)
 
 	if (usb_generic_create)
 		usb_generic_create(dev);
+}
+
+int
+is_usb_speed_ss(int speed)
+{
+	return (speed == SUPER_SPEED);
 }
