@@ -453,6 +453,32 @@ static int usb_hid_set_layout (const char *country)
 	return -1;
 }
 
+static void usb_hid_add_keyboard(usbdev_t *dev) {
+	char name[128];
+	phandle_t aliases;
+	phandle_t dnode;
+
+    fword("new-device");
+    dnode = get_cur_dev();
+    set_int_property(dnode, "reg", dev->address);
+
+	push_str("keyboard");
+	fword("device-name");
+
+	push_str("keyboard");
+	fword("device-type");
+
+	snprintf(name, sizeof(name), "%s/keyboard", get_path_from_ph(dnode));
+	usb_debug("Found keyboard at %s\n", name);
+
+	BIND_NODE_METHODS(get_cur_dev(), usb_kbd);
+
+	fword("finish-device");
+
+	aliases = find_dev("/aliases");
+	set_property(aliases, "keyboard", name, strlen(name) + 1);
+}
+
 void
 usb_hid_init (usbdev_t *dev)
 {
@@ -512,6 +538,7 @@ usb_hid_init (usbdev_t *dev)
 			HID_INST(dev)->queue = dev->controller->create_intr_queue (&dev->endpoints[i], 8, 20, 10);
 			keycount = 0;
 			usb_debug ("  configuration done.\n");
+			usb_hid_add_keyboard(dev);
 			break;
 		default:
 			usb_debug("NOTICE: HID interface protocol %d%s not supported.\n",

@@ -891,7 +891,7 @@ ohci_process_done_queue(ohci_t *const ohci, const int spew_debug)
 int ob_usb_ohci_init (const char *path, uint32_t addr)
 {
 	hci_t *ctrl;
-	int i;
+	//int i;
 
 	usb_debug("ohci_init: %s addr = %x\n", path, addr);
 	ctrl = ohci_pci_init(addr);
@@ -902,7 +902,7 @@ int ob_usb_ohci_init (const char *path, uint32_t addr)
 	usb_poll();
 
 	/* Look for a keyboard */
-	for (i = 0; i < 128; i++) {
+	/*for (i = 0; i < 128; i++) {
 		if (ctrl->devices[i] && ctrl->devices[i]->configuration) {
 			configuration_descriptor_t *cd;
 			interface_descriptor_t *intf;
@@ -918,7 +918,7 @@ int ob_usb_ohci_init (const char *path, uint32_t addr)
 		}
 	}
 	if ( i < 128 )
-		ob_usb_hid_add_keyboard(path);
+		ob_usb_hid_add_keyboard(path);*/
 
 	return 1;
 }
