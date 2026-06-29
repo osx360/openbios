@@ -64,6 +64,7 @@ int ob_ide_init(const char *path, uint32_t io_port0, uint32_t ctl_port0,
                 uint32_t io_port1, uint32_t ctl_port1);
 void ob_ide_quiesce(void);
 int macio_ide_init(const char *path, uint32_t addr, int nb_channels);
+int xbox360_ide_init(const char *path, uint32_t addr);
 #endif
 #ifdef CONFIG_DRIVER_ESP
 /* drivers/esp.c */
@@ -145,6 +146,10 @@ unsigned char keyboard_readdata(void);
 void ob_virtio_init(const char *path, const char *dev_name, uint64_t common_cfg,
                     uint64_t device_cfg, uint64_t notify_base, uint32_t notify_mult,
                     int idx);
+#endif
+#ifdef CONFIG_DRIVER_XENOS
+/* drivers/xenos.c */
+int ob_xenos_init(const char *path);
 #endif
 int macio_get_nvram_size(void);
 void macio_nvram_put(char *buf);

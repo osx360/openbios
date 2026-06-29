@@ -1,0 +1,61 @@
+OUTPUT_FORMAT(elf32-powerpc)
+OUTPUT_ARCH(powerpc:common)
+ENTRY(_start)
+
+/* Initial load address
+ */
+BASE_ADDR = 0x07E00000;
+
+/* As NVRAM is at 0xfff04000, the .text needs to be after that
+ */
+TEXT_ADDR = 0x07E08000;
+
+CSTACK_SIZE = 32768;	/* client stack size */
+
+SECTIONS
+{
+    . = BASE_ADDR;
+    _start = .;
+
+    .text.vectors ALIGN(4096): {
+        *(.text.vectors)
+    }
+
+    . = TEXT_ADDR;
+    /* Normal sections */
+    .text ALIGN(4096): {
+        *(.text)
+        *(.text.*)
+    }
+
+    .rodata ALIGN(4096): {
+        _rodata = .;
+        *(.rodata)
+        *(.rodata.*)
+        *(.note.ELFBoot)
+    }
+    .data ALIGN(4096): {
+        _data = .;
+        *(.data)
+        *(.data.*)
+        _edata = .;
+    }
+
+    .bss ALIGN(4096): {
+        _bss = .;
+        *(.sbss)
+        *(.sbss.*)
+        *(.bss)
+        *(.bss.*)
+        *(COMMON)
+        _ebss = .;
+    }
+
+    . = ALIGN(4096);
+    _end = .;
+
+    /* We discard .note sections other than .note.ELFBoot,
+     * because some versions of GCC generates useless ones. */
+
+    /DISCARD/ : { *(.comment*) *(.note.*) }
+}

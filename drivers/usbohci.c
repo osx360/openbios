@@ -215,17 +215,29 @@ ohci_init (void *bar)
 		OHCI_INST (controller)->opreg->HcRhDescriptorA =
 			__cpu_to_le32(NoPowerSwitching | NoOverCurrentProtection | (10 * PowerOnToPowerGoodTime));
 		OHCI_INST (controller)->opreg->HcRhDescriptorB = __cpu_to_le32(0 * DeviceRemovable);
+#ifdef CONFIG_XBOX360
+		udelay(100 / 2); /* TODO: 100us too long on Xbox 360? */
+#else
 		udelay(100); /* TODO: reset asserting according to USB spec */
+#endif
 	} else if ((READ_OPREG(OHCI_INST(controller), HcControl) & HostControllerFunctionalStateMask) != USBOperational) {
 		OHCI_INST (controller)->opreg->HcControl =
 			__cpu_to_le32((READ_OPREG(OHCI_INST(controller), HcControl) & ~HostControllerFunctionalStateMask)
 			| USBResume);
+#ifdef CONFIG_XBOX360
+		udelay(100 / 2); /* TODO: 100us too long on Xbox 360? */
+#else
 		udelay(100); /* TODO: resume time according to USB spec */
+#endif
 	}
 	int interval = OHCI_INST (controller)->opreg->HcFmInterval;
 
 	OHCI_INST (controller)->opreg->HcCommandStatus = __cpu_to_le32(HostControllerReset);
+#ifdef CONFIG_XBOX360
+	udelay (4); /* Wait 4us on Xbox 360 instead */
+#else
 	udelay (10); /* at most 10us for reset to complete. State must be set to Operational within 2ms (5.1.1.4) */
+#endif
 	OHCI_INST (controller)->opreg->HcFmInterval = interval;
 	ofmem_posix_memalign((void **)&(OHCI_INST (controller)->hcca), 256, 256);
 	memset((void*)OHCI_INST (controller)->hcca, 0, 256);

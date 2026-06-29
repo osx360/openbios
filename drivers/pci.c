@@ -697,6 +697,14 @@ int ide_config_cb2 (const pci_config_t *config)
 	return 0;
 }
 
+#ifdef CONFIG_XBOX360
+int xbox360_ide_config_cb(const pci_config_t *config)
+{
+	xbox360_ide_init(config->path, config->assigned[0]);
+	return 0;
+}
+#endif
+
 int eth_config_cb (const pci_config_t *config)
 {
 	phandle_t ph = get_cur_dev();
@@ -1233,6 +1241,15 @@ int lsi53c810_config_cb(const pci_config_t *config)
     return 0;
 }
 
+int xenos_config_cb(const pci_config_t *config)
+{
+#ifdef CONFIG_DRIVER_XENOS
+    ob_xenos_init(config->path);
+#endif
+
+    return 0;
+}
+
 void ob_pci_enable_bus_master(const pci_config_t *config)
 {
 	/* Enable bus mastering for the PCI device */
@@ -1258,6 +1275,10 @@ static void ob_pci_add_properties(phandle_t phandle,
 	uint8_t class_prog;
 	uint32_t class_code;
 	char path[256];
+#ifdef CONFIG_XBOX360
+    phandle_t dnode;
+    uint8_t irq;
+#endif
 
 	vendor_id = pci_config_read16(addr, PCI_VENDOR_ID);
 	device_id = pci_config_read16(addr, PCI_DEVICE_ID);
@@ -1290,6 +1311,60 @@ static void ob_pci_add_properties(phandle_t phandle,
 	set_int_property(dev, "revision-id", rev);
 	set_int_property(dev, "class-code", class_code << 8 | class_prog);
 
+#ifdef CONFIG_XBOX360
+    irq = 0;
+    if ((PCI_BUS(config->dev) == 0) && (PCI_DEV(config->dev) == 2) && (PCI_FN(config->dev) == 0)) {
+        irq = 0x58;
+    } else if ((PCI_BUS(config->dev) == 1) && (PCI_FN(config->dev) == 0)) {
+        switch (PCI_DEV(config->dev)) {
+            case 0: // XMA
+                irq = 0x40;
+                break;
+
+            case 1: // SATA controller 1 (CDROM)
+                irq = 0x24;
+                break;
+
+            case 2: // SATA controller 0 (HDD)
+                irq = 0x20;
+                break;
+
+            case 4: // OHCI controller 0 (rear USB)
+                irq = 0x2C;
+                break;
+
+            case 5: // OHCI controller 1 (front USB)
+                irq = 0x34;
+                break;
+
+            case 7: // Ethernet controller
+                irq = 0x4C;
+                break;
+
+            case 8: // Flash controller
+                irq = 0x18;
+                break;
+
+            case 9: // Audio controller
+                irq = 0x44;
+                break;
+
+            case 10: // SMC
+                irq = 0x14;
+                break;
+        }
+    } else if ((PCI_BUS(config->dev) == 1) && (PCI_DEV(config->dev) == 4) && (PCI_FN(config->dev) == 1)) {
+        irq = 0x30; // EHCI controller 0 (rear USB)
+    } else if ((PCI_BUS(config->dev) == 1) && (PCI_DEV(config->dev) == 5) && (PCI_FN(config->dev) == 1)) {
+        irq = 0x38; // EHCI controller 1 (front USB)
+    }
+
+    if (irq) {
+        set_int_property(dev, "interrupts", irq);
+        dnode = dt_iterate_type(0, "interrupt-controller");
+        set_int_property(dev, "interrupt-parent", dnode);
+    }
+#else
 	if (config->irq_pin) {
 		if (is_oldworld()) {
 			set_int_property(dev, "AAPL,interrupts", config->irq_line);
@@ -1297,6 +1372,7 @@ static void ob_pci_add_properties(phandle_t phandle,
 			set_int_property(dev, "interrupts", config->irq_pin);
 		}
 	}
+#endif
 
 	set_int_property(dev, "min-grant", pci_config_read8(addr, PCI_MIN_GNT));
 	set_int_property(dev, "max-latency", pci_config_read8(addr, PCI_MAX_LAT));
@@ -1415,6 +1491,10 @@ static void ob_pci_configure_bar(pci_addr addr, pci_config_t *config,
 
         pci_config_write32(addr, config_addr, 0xffffffff);
         smask = pci_config_read32(addr, config_addr);
+#ifdef CONFIG_XBOX360
+        // Restore original BAR, do not assign a new one.
+        pci_config_write32(addr, config_addr, config->regions[reg]);
+#endif
         if (smask == 0x00000000 || smask == 0xffffffff)
                 return;
 
@@ -1436,6 +1516,12 @@ static void ob_pci_configure_bar(pci_addr addr, pci_config_t *config,
         smask &= ~amask;
         size = (~smask) + 1;
         config->sizes[reg] = size;
+
+#ifdef CONFIG_XBOX360
+        config->assigned[reg] = config->regions[reg];
+        return;
+#endif
+
         reloc = base;
         if (size < min_align)
                 size = min_align;
@@ -1459,6 +1545,10 @@ static void ob_pci_configure_bar(pci_addr addr, pci_config_t *config,
 static void ob_pci_configure_irq(pci_addr addr, pci_config_t *config)
 {
         uint8_t irq_pin, irq_line;
+
+#ifdef CONFIG_XBOX360
+        return;
+#endif
 
         irq_pin =  pci_config_read8(addr, PCI_INTERRUPT_PIN);
         if (irq_pin) {
@@ -1602,7 +1692,9 @@ static void ob_configure_pci_bridge(pci_addr addr,
                                     int primary_bus, pci_config_t *config)
 {
     unsigned long old_mem_base, old_io_base, io_scan_limit;
+#if !defined(CONFIG_XBOX360)
     uint16_t cmd;
+#endif
     phandle_t ph;
 
     config->primary_bus = primary_bus;
@@ -1674,6 +1766,11 @@ static void ob_configure_pci_bridge(pci_addr addr,
             config->path, config->primary_bus, config->secondary_bus,
             config->subordinate_bus);
 
+#if defined(CONFIG_XBOX360)
+    // TODO: ob_scan_pci_bus doesn't update the MMIO base, just add to it.
+    *mem_base = old_mem_base + 0x10000000;
+#endif
+
     /* Align mem_base up to nearest MB, io_base up to nearest 4K */
     *mem_base = (*mem_base + 0xfffff - 1) & ~(0xfffff - 1);
     *io_base = (*io_base + 0xfff - 1) & ~(0xfff - 1);
@@ -1683,6 +1780,7 @@ static void ob_configure_pci_bridge(pci_addr addr,
     pci_config_write16(addr, PCI_IO_LIMIT_UPPER, ((*io_base - 1) >> 16));
     pci_config_write8(addr, PCI_IO_LIMIT, (((*io_base - 1) >> 8) & ~(0xf)));
 
+#if !defined(CONFIG_XBOX360)
     /* Disable unused address spaces */
     cmd = pci_config_read16(addr, PCI_COMMAND);
     if (*mem_base == old_mem_base) {
@@ -1692,6 +1790,7 @@ static void ob_configure_pci_bridge(pci_addr addr,
     if (*io_base == old_io_base) {
         pci_config_write16(addr, PCI_COMMAND, (cmd & ~PCI_COMMAND_IO));
     }
+#endif
 
     pci_set_bus_range(config);
 }
@@ -1901,7 +2000,7 @@ static void ob_pci_set_available(phandle_t host, unsigned long mem_base, unsigne
     set_property(host, "available", (char *)props, ncells * sizeof(props[0]));
 }
 
-#if defined(CONFIG_PPC)
+#if defined(CONFIG_PPC) && !defined(CONFIG_XBOX360)
 static phandle_t ob_pci_host_set_interrupt_map(phandle_t host)
 {
     /* Set the host bridge interrupt map, returning the phandle

@@ -21,6 +21,50 @@
 #define PCI_DEV(pcidev) ((uint8_t) ((pcidev) >> 11) & 0x1f)
 #define PCI_FN(pcidev) ((uint8_t) ((pcidev) >> 8) & 7)
 
+#ifdef CONFIG_XBOX360
+
+#define PCI_DEVFN(slot, func)	((((slot) & 0x1f) << 3) | ((func) & 0x07))
+#define PCI_CONFIG(dev) (arch->cfg_addr	\
+	+ ((((PCI_BUS(dev)) << 8) + PCI_DEVFN(PCI_DEV(dev), PCI_FN(dev))) << 12))
+
+static inline uint8_t pci_config_read8(pci_addr dev, uint8_t reg)
+{
+	uint8_t res;
+	res = in_8((unsigned char*)(PCI_CONFIG(dev) + reg));
+	return res;
+}
+
+static inline uint16_t pci_config_read16(pci_addr dev, uint8_t reg)
+{
+	uint16_t res;
+	res = in_le16((uint16_t *)(PCI_CONFIG(dev) + reg));
+	return res;
+}
+
+static inline uint32_t pci_config_read32(pci_addr dev, uint8_t reg)
+{
+	uint32_t res;
+	res = in_le32((uint32_t *)(PCI_CONFIG(dev) + reg));
+	return res;
+}
+
+static inline void pci_config_write8(pci_addr dev, uint8_t reg, uint8_t val)
+{
+	out_8((unsigned char*)(PCI_CONFIG(dev) + reg), val);
+}
+
+static inline void pci_config_write16(pci_addr dev, uint8_t reg, uint16_t val)
+{
+	out_le16((uint16_t *)(PCI_CONFIG(dev) + reg), val);
+}
+
+static inline void pci_config_write32(pci_addr dev, uint8_t reg, uint32_t val)
+{
+	out_le32((uint32_t *)(PCI_CONFIG(dev) + reg), val);
+}
+
+#else /* !CONFIG_XBOX360 */
+
 static inline uint8_t pci_config_read8(pci_addr dev, uint8_t reg)
 {
 	uint8_t res;
@@ -62,6 +106,9 @@ static inline void pci_config_write32(pci_addr dev, uint8_t reg, uint32_t val)
 	out_le32((unsigned *)arch->cfg_addr, dev | reg);
 	out_le32((unsigned *)(arch->cfg_data), val);
 }
+
+#endif
+
 #else /* !PCI_CONFIG_1 */
 #error PCI Configuration Mechanism is not specified or implemented
 #endif

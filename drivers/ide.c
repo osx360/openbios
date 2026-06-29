@@ -679,6 +679,7 @@ ob_ide_atapi_drive_ready(struct ide_drive *drive)
 		return 1;
 	}
 
+#if !defined(CONFIG_XBOX360)
 	/*
 	 * don't force load of tray (bit 2 in byte 4 of cdb), it's
 	 * annoying and we don't want to deal with errors from drives
@@ -692,6 +693,7 @@ ob_ide_atapi_drive_ready(struct ide_drive *drive)
 		IDE_DPRINTF("%d: START_STOP unit failed\n", drive->nr);
 		return 1;
 	}
+#endif
 
 	/*
 	 * finally, get capacity and block size
@@ -1129,8 +1131,15 @@ ob_ide_probe(struct ide_channel *chan)
 {
 	struct ide_drive *drive;
 	int i;
+	int count;
 
-	for (i = 0; i < 2; i++) {
+#if defined(CONFIG_XBOX360)
+	count = 1; // Only one drive per channel.
+#else
+	count = 2;
+#endif
+
+	for (i = 0; i < count; i++) {
 		drive = &chan->drives[i];
 
 		ob_ide_device_check(drive);
@@ -1748,3 +1757,133 @@ int macio_ide_init(const char *path, uint32_t addr, int nb_channels)
 	return 0;
 }
 #endif /* CONFIG_DRIVER_MACIO */
+
+#if defined(CONFIG_XBOX360)
+static unsigned char
+xbox360_ide_inb(struct ide_channel *chan, unsigned int port)
+{
+	return in_8((unsigned char*)(chan->mmio + port));
+}
+
+static void
+xbox360_ide_outb(struct ide_channel *chan, unsigned char data, unsigned int port)
+{
+	out_8((unsigned char*)(chan->mmio + port), data);
+}
+
+static void
+xbox360_ide_insw(struct ide_channel *chan,
+	       unsigned int port, unsigned char *addr, unsigned int count)
+{
+	_insw((uint16_t*)(chan->mmio + port), addr, count);
+}
+
+static void
+xbox360_ide_outsw(struct ide_channel *chan,
+		unsigned int port, unsigned char *addr, unsigned int count)
+{
+	_outsw((uint16_t*)(chan->mmio + port), addr, count);
+}
+
+int xbox360_ide_init(const char *path, uint32_t addr)
+{
+	int j;
+	char nodebuff[128];
+	phandle_t dnode;
+	struct ide_channel *chan;
+
+	chan = malloc(sizeof(struct ide_channel));
+
+	chan->mmio = addr;
+
+	for (j = 0; j < 8; j++)
+		chan->io_regs[j] = j;
+
+	chan->io_regs[8] = 0xA;
+	chan->io_regs[9] = 0xA + 1;
+
+	chan->obide_inb = xbox360_ide_inb;
+	chan->obide_insw = xbox360_ide_insw;
+	chan->obide_outb = xbox360_ide_outb;
+	chan->obide_outsw = xbox360_ide_outsw;
+
+	chan->selected = -1;
+
+	/*
+		* assume it's there, if not io port dead check will clear
+		*/
+	chan->present = 1;
+
+	for (j = 0; j < 2; j++) {
+		chan->drives[j].present = 0;
+		chan->drives[j].unit = j;
+		chan->drives[j].channel = chan;
+		/* init with a decent value */
+		chan->drives[j].bs = 512;
+
+		chan->drives[j].nr = j;
+	}
+
+	ob_ide_probe(chan);
+
+	if (!chan->present)
+		return 0;
+
+	ob_ide_identify_drives(chan);
+
+	for (j = 0; j < 2; j++) {
+		struct ide_drive *drive = &chan->drives[j];
+					const char *media = "UNKNOWN";
+
+		if (!drive->present)
+			continue;
+
+		IDE_DPRINTF("    drive%d [ATA%s ", j,
+					drive->type == ide_type_atapi ? "PI" : "");
+		switch (drive->media) {
+			case ide_media_floppy:
+				media = "floppy";
+				break;
+			case ide_media_cdrom:
+				media = "cdrom";
+				break;
+			case ide_media_optical:
+				media = "mo";
+				break;
+			case ide_media_disk:
+				media = "disk";
+				break;
+		}
+
+		IDE_DPRINTF("%s]: %s\n", media, drive->model);
+
+		fword("new-device");
+		dnode = get_cur_dev();
+		set_int_property(dnode, "reg", j);
+		push_str(media);
+		fword("device-name");
+
+		push_str("block");
+		fword("device-type");
+
+		PUSH(pointer2cell(drive));
+		feval("value drive");
+
+		BIND_NODE_METHODS(dnode, ob_ide);
+		fword("is-deblocker");
+
+		fword("finish-device");
+
+		/* create aliases */
+		snprintf(nodebuff, sizeof(nodebuff), "%s",
+				get_path_from_ph(dnode));
+		set_ide_alias(nodebuff);
+		if (drive->media == ide_media_cdrom)
+			set_cd_alias(nodebuff);
+		if (drive->media == ide_media_disk)
+			set_hd_alias(nodebuff);
+	}
+
+	return 0;
+}
+#endif /* CONFIG_XBOX360 */

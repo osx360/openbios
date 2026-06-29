@@ -94,6 +94,31 @@ static const pci_dev_t ide_devices[] = {
     },
 };
 
+static const pci_dev_t sata_devices[] = {
+#if defined(CONFIG_XBOX360)
+    {
+        PCI_VENDOR_ID_MICROSOFT, PCI_DEVICE_ID_MICROSOFT_XENON_SATA_CDROM, NULL,
+        "ata", "ata",
+        "pci1414,5802\0pciclass,010600\0",
+        0, 0, 0,
+        xbox360_ide_config_cb, NULL,
+    },
+    {
+        PCI_VENDOR_ID_MICROSOFT, PCI_DEVICE_ID_MICROSOFT_XENON_SATA_HDD, NULL,
+        "ata", "ata",
+        "pci1414,5803\0pciclass,010600\0",
+        0, 0, 0,
+        xbox360_ide_config_cb, NULL,
+    },
+#endif
+    {
+        0xFFFF, 0xFFFF,
+        NULL, NULL, NULL, NULL,
+        -1, -1, -1,
+        NULL, NULL,
+    },
+};
+
 static const pci_subclass_t mass_subclass[] = {
     {
         PCI_SUBCLASS_STORAGE_SCSI, "SCSI bus controller",
@@ -123,6 +148,11 @@ static const pci_subclass_t mass_subclass[] = {
     {
         PCI_SUBCLASS_STORAGE_ATA, "ATA controller",
         "ata", NULL, NULL,
+        NULL, NULL,
+    },
+    {
+        PCI_SUBCLASS_STORAGE_SATA, "SATA controller",
+        "sata", sata_devices, NULL,
         NULL, NULL,
     },
     {
@@ -274,6 +304,41 @@ static const struct pci_iface_t vga_iface[] = {
     },
 };
 
+static const struct pci_dev_t misc_disp_devices[] = {
+#if defined(CONFIG_DRIVER_XENOS)
+    {
+        PCI_VENDOR_ID_MICROSOFT, PCI_DEVICE_ID_MICROSOFT_XENON_XENOS_XENON,
+        NULL, "xenos", "xenos", "pci1414,5811\0",
+        0, 0, 0,
+        xenos_config_cb, NULL,
+    },
+    {
+        PCI_VENDOR_ID_MICROSOFT, PCI_DEVICE_ID_MICROSOFT_XENON_XENOS_ZEPHYR,
+        NULL, "xenos", "xenos", "pci1414,5821\0",
+        0, 0, 0,
+        xenos_config_cb, NULL,
+    },
+    {
+        PCI_VENDOR_ID_MICROSOFT, PCI_DEVICE_ID_MICROSOFT_XENON_XENOS_JASPER,
+        NULL, "xenos", "xenos", "pci1414,5831\0",
+        0, 0, 0,
+        xenos_config_cb, NULL,
+    },
+    {
+        PCI_VENDOR_ID_MICROSOFT, PCI_DEVICE_ID_MICROSOFT_XENON_XENOS_SLIM,
+        NULL, "xenos", "xenos", "pci1414,5841\0",
+        0, 0, 0,
+        xenos_config_cb, NULL,
+    },
+#endif
+    {
+        0xFFFF, 0xFFFF,
+        NULL, NULL, NULL, NULL,
+        -1, -1, -1,
+        NULL, NULL,
+    },
+};
+
 static const pci_subclass_t displ_subclass[] = {
     {
         PCI_SUBCLASS_DISPLAY_VGA, "display controller",
@@ -292,7 +357,7 @@ static const pci_subclass_t displ_subclass[] = {
     },
     {
         PCI_SUBCLASS_DISPLAY_OTHER, "misc display controller",
-        NULL, NULL, NULL,
+        NULL, misc_disp_devices, NULL,
         NULL, NULL,
     },
     {
@@ -392,6 +457,14 @@ static const pci_dev_t hbrg_devices[] = {
         3, 2, 1,
         sabre_config_cb, NULL,
     },
+#if defined(CONFIG_XBOX360)
+    {
+        PCI_VENDOR_ID_MICROSOFT, PCI_DEVICE_ID_MICROSOFT_XENON_HOST_BRIDGE, NULL,
+        "pci", "MSFT,XenonPCI", "xenon-pci\0",
+        3, 2, 1,
+        host_config_cb, NULL,
+    },
+#endif
     {
         0xFFFF, 0xFFFF,
         NULL, NULL, NULL, NULL,
@@ -413,6 +486,14 @@ static const pci_dev_t PCIbrg_devices[] = {
         3, 2, 1,
         simba_config_cb, NULL,
     },
+#if defined(CONFIG_XBOX360)
+    {
+        PCI_VENDOR_ID_MICROSOFT, PCI_DEVICE_ID_MICROSOFT_XENON_PCI_BRIDGE, NULL,
+        "pci-bridge", "MSFT,XenonPCIBridge", "xenon-pci-bridge\0",
+        3, 2, 1,
+        bridge_config_cb, NULL,
+    },
+#endif
     {
         0xFFFF, 0xFFFF,
         NULL, NULL, NULL, NULL,
@@ -901,6 +982,47 @@ static const pci_dev_t usb_devices[] = {
         NULL, NULL,
     },
 #endif
+#if defined(CONFIG_XBOX360)
+    {
+        PCI_VENDOR_ID_MICROSOFT, PCI_DEVICE_ID_MICROSOFT_XENON_OHCI0,
+        "usb", "usb", NULL,
+	    "pci1414,5804\0pciclass,0c0310\0",
+        1, 0, 0,
+        NULL, NULL,
+    },
+    {
+        PCI_VENDOR_ID_MICROSOFT, PCI_DEVICE_ID_MICROSOFT_XENON_OHCI1,
+        "usb", "usb", NULL,
+	    "pci1414,5806\0pciclass,0c0310\0",
+        1, 0, 0,
+        NULL, NULL,
+    },
+#endif
+    {
+        0xFFFF, 0xFFFF,
+        NULL, NULL, NULL, NULL,
+        -1, -1, -1,
+        NULL, NULL,
+    },
+};
+
+static const pci_dev_t usb_ehci_devices[] = {
+#if defined(CONFIG_XBOX360)
+    {
+        PCI_VENDOR_ID_MICROSOFT, PCI_DEVICE_ID_MICROSOFT_XENON_EHCI0,
+        "usb", "usb", NULL,
+	    "pci1414,5805\0pciclass,0c0320\0",
+        1, 0, 0,
+        NULL, NULL,
+    },
+    {
+        PCI_VENDOR_ID_MICROSOFT, PCI_DEVICE_ID_MICROSOFT_XENON_EHCI1,
+        "usb", "usb", NULL,
+	    "pci1414,5807\0pciclass,0c0320\0",
+        1, 0, 0,
+        NULL, NULL,
+    },
+#endif
     {
         0xFFFF, 0xFFFF,
         NULL, NULL, NULL, NULL,
@@ -920,7 +1042,7 @@ static const pci_iface_t usb_iface[] = {
     },
     {
         0x20, "EHCI USB controller", NULL,
-        NULL, NULL, NULL,
+        usb_ehci_devices, NULL, NULL,
     },
     {
         0x80, "misc USB controller", NULL,

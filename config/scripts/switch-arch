@@ -12,7 +12,7 @@ if [ x"$1" = x -o "$1" = "-help" ]; then
   printf "Add \"unix-\" prefix to compile openbios-unix executable (native only)\n"
   printf "Add \"builtin-\" prefix to compile openbios-builtin executables\n\n"
   printf "Without prefixes, builtin and unix targets are selected\n\n"
-  printf "Special targets: mol-ppc briq-ppc pearpc-ppc qemu-ppc qemu-ppc64 xbox-x86\n\n"
+  printf "Special targets: mol-ppc briq-ppc pearpc-ppc qemu-ppc qemu-ppc64 xbox-x86 xbox360-ppc\n\n"
   printf "Example: $0 builtin-sparc32 unix-amd64 builtin-amd64\n"
   exit 0
 fi
@@ -168,7 +168,7 @@ fi
 target_list=""
 for target in $*; do
     case $target in
-        unix-*|builtin-*|plain-*|mol-ppc|briq-ppc|pearpc-ppc|qemu-ppc|qemu-ppc64|xbox-x86)
+        unix-*|builtin-*|plain-*|mol-ppc|briq-ppc|pearpc-ppc|qemu-ppc|qemu-ppc64|xbox-x86|xbox360-ppc)
         target_list="$target_list $target"
         ;;
         cross-*)
@@ -230,6 +230,9 @@ for ARCH in $arch_list; do
             ;;
             xbox-x86)
             xbox="yes"
+            ;;
+            xbox360-ppc)
+            xbox360="yes"
             ;;
             builtin-sparc32)
             builtin="yes"
@@ -359,6 +362,9 @@ for ARCH in $arch_list; do
     if [ "$xbox" = "yes" ]; then
         mkdir -p $OBJDIR/target/arch/x86/xbox
     fi
+    if [ "$xbox360" = "yes" ]; then
+        mkdir -p $OBJDIR/target/arch/ppc/xbox360
+    fi
     echo "ok."
 
     ODIR=$OBJDIR
@@ -399,6 +405,9 @@ for ARCH in $arch_list; do
     if [ "$xbox" = "yes" ]; then
         config_set_boolean CONFIG_XBOX >> $ODIR/config.xml
     fi
+    if [ "$xbox360" = "yes" ]; then
+        config_set_boolean CONFIG_XBOX360 >> $ODIR/config.xml
+    fi
     if [ "$targetbigendian" = "yes" ]; then
         config_set_boolean CONFIG_BIG_ENDIAN >> $ODIR/config.xml
     else
@@ -417,7 +426,11 @@ for ARCH in $arch_list; do
         #config_set_boolean CONFIG_UNIX_QT >> $ODIR/config.xml
         #config_set_boolean CONFIG_PLUGINS >> $ODIR/config.xml
     fi
-    cat $SRCDIR/config/examples/${ARCH}_config.xml >> $ODIR/config.xml
+    if [ "$xbox360" = "yes" ]; then
+        cat $SRCDIR/config/examples/${ARCH}_xbox360_config.xml >> $ODIR/config.xml
+    else
+        cat $SRCDIR/config/examples/${ARCH}_config.xml >> $ODIR/config.xml
+    fi
 
     cd $ODIR
     echo "</config>" >> $ODIR/config.xml

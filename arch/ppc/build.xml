@@ -29,6 +29,13 @@
   <object source="QEMU,VGA.bin" target="fcode" condition="DRIVER_VGA"/>
  </dictionary>
 
+ <dictionary name="openbios-xbox360" init="openbios" target="forth" condition="XBOX360">
+  <object source="ppc.fs"/>
+  <object source="xbox360/tree.fs"/>
+  <object source="xbox360/xbox360.fs"/>
+  <object source="MSFT,xenos.bin" target="fcode" condition="DRIVER_XENOS"/>
+ </dictionary>
+
  <!-- HACK ALERT -->
 
  <executable name="target/include/briq-dict.h" target="target" condition="BRIQ">
@@ -89,6 +96,17 @@
 	$(call quiet-command,$(CC) $$EXTRACFLAGS $(CFLAGS) $(INCLUDES) -c -o $@ $(SRCDIR)/arch/ppc/mol/kernel.c, "  CC    $(TARGET_DIR)$@")]]></rule>
  </executable>
 
+ <executable name="target/include/xbox360-dict.h" target="target" condition="XBOX360">
+  <rule><![CDATA[
+	$(call quiet-command,$(ODIR)/forthstrap -x -D $@ -d $< </dev/null, "  GEN   $(TARGET_DIR)$@")]]></rule>
+  <external-object source="openbios-xbox360.dict"/>
+ </executable>
+
+  <executable name="target/arch/ppc/xbox360/kernel.o" target="target" condition="XBOX360">
+  <rule><![CDATA[ $(SRCDIR)/arch/ppc/xbox360/kernel.c $(ODIR)/target/include/xbox360-dict.h
+	$(call quiet-command,$(CC) $$EXTRACFLAGS $(CFLAGS) $(INCLUDES) -c -o $@ $(SRCDIR)/arch/ppc/xbox360/kernel.c, "  CC    $(TARGET_DIR)$@")]]></rule>
+ </executable>
+
  <!-- END OF HACK ALERT -->
 
  <library name="briq" target="target" type="static" condition="BRIQ">
@@ -142,6 +160,16 @@
   <object source="mol/prom.c" flags="-I$(SRCDIR)/arch/ppc"/>
   <object source="mol/tree.c" flags="-I$(SRCDIR)/arch/ppc"/>
   <external-object source="target/arch/ppc/mol/kernel.o"/>
+ </library>
+
+ <library name="xbox360" target="target" type="static" condition="XBOX360">
+  <object source="xbox360/ofmem.c"/>
+  <object source="xbox360/xbox360.c" flags="-I$(SRCDIR)/arch/ppc"/>
+  <object source="xbox360/init.c" flags="-I$(SRCDIR)/arch/ppc"/>
+  <external-object source="target/arch/ppc/xbox360/kernel.o"/>
+  <object source="xbox360/main.c" flags="-I$(SRCDIR)/arch/ppc"/>
+  <object source="xbox360/methods.c" flags="-I$(SRCDIR)/arch/ppc"/>
+  <object source="xbox360/console.c" flags="-I$(SRCDIR)/arch/ppc"/>
  </library>
 
  <executable name="openbios-briq.elf" target="target" condition="BRIQ">
@@ -208,6 +236,26 @@
   <external-object source="libdrivers.a"/>
   <external-object source="libfs.a"/>
   <external-object source="liblibc.a"/>
+ </executable>
+
+ <executable name="openbios-xbox360.elf" target="target" condition="XBOX360">
+  <rule>
+	$(call quiet-command,$(LD) --warn-common -z noexecstack -N -T $(SRCDIR)/arch/$(ARCH)/xbox360/ldscript -o $@.nostrip --whole-archive $^,"  LINK  $(TARGET_DIR)$@")
+	$(call quiet-command,$(NM) $@.nostrip | sort > $(ODIR)/openbios-xbox360.syms,"  GEN   $(TARGET_DIR)$@.syms")
+	$(call quiet-command,$(STRIP) $@.nostrip -o $@,"  STRIP $(TARGET_DIR)$@")</rule>
+  <object source="xbox360/start.S"/>
+  <object source="xbox360/switch.S"/>
+  <object source="xbox360/context.c"/>
+  <object source="timebase.S"/>
+
+  <external-object source="libxbox360.a"/>
+  <external-object source="libbootstrap.a"/>
+  <external-object source="libopenbios.a"/>
+  <external-object source="libpackages.a"/>
+  <external-object source="libdrivers.a"/>
+  <external-object source="libfs.a"/>
+  <external-object source="liblibc.a"/>
+  <external-object source="libgcc.a"/>
  </executable>
 
 </build>
