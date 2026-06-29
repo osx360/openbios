@@ -110,7 +110,8 @@ int ofmem_posix_memalign( void **memptr, size_t alignment, size_t size )
 	}
 
 	/* waste at most 4K by taking an entry from the freelist */
-	if( *pp && (**pp).size > size + 0x1000 ) {
+	/* FIX: Changed > to < to correctly reuse suitably sized blocks */
+	if( *pp && (**pp).size < size + 0x1000 ) {
 		/* Alignment should be on physical not virtual address */
 		pa = va2pa((uintptr_t)*pp + sizeof(alloc_desc_t));
 		pa = align_ptr(pa, alignment);
@@ -136,7 +137,9 @@ int ofmem_posix_memalign( void **memptr, size_t alignment, size_t size )
 	}
 
 	d = (alloc_desc_t*)((uintptr_t)ret - sizeof(alloc_desc_t));
-	ofmem->next_malloc += size;
+
+	/* FIX: Correctly update next_malloc accounting for the alignment padding */
+	ofmem->next_malloc = (char *)ret + size - sizeof(alloc_desc_t);
 
 	d->next = NULL;
 	d->size = size;
@@ -172,7 +175,6 @@ void ofmem_free( void *ptr )
 		return;
 
 	d = (alloc_desc_t*)((char *)ptr - sizeof(alloc_desc_t));
-	d->next = ofmem->mfree;
 
 	/* insert in the (sorted) freelist */
 	for( pp=&ofmem->mfree; *pp && (**pp).size < d->size ; pp = &(**pp).next ) {
