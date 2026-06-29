@@ -116,7 +116,8 @@ struct ata_command {
 	/*
 	 * or tasklet, just for lba48 for now (above could be scrapped)
 	 */
-	unsigned char task[10];
+	unsigned int use_task;
+	unsigned char task[8];
 
 	/*
 	 * output

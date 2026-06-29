@@ -293,17 +293,20 @@ ob_ide_select_drive(struct ide_drive *drive)
 static void
 ob_ide_write_tasklet(struct ide_drive *drive, struct ata_command *cmd)
 {
-	ob_ide_pio_writeb(drive, IDEREG_FEATURE, cmd->task[1]);
-	ob_ide_pio_writeb(drive, IDEREG_NSECTOR, cmd->task[3]);
-	ob_ide_pio_writeb(drive, IDEREG_SECTOR, cmd->task[7]);
-	ob_ide_pio_writeb(drive, IDEREG_LCYL, cmd->task[8]);
-	ob_ide_pio_writeb(drive, IDEREG_HCYL, cmd->task[9]);
+	/*
+	 * we are _always_ polled
+	 */
+	ob_ide_pio_writeb(drive, IDEREG_CONTROL, cmd->control | IDECON_NIEN);
 
-	ob_ide_pio_writeb(drive, IDEREG_FEATURE, cmd->task[0]);
-	ob_ide_pio_writeb(drive, IDEREG_NSECTOR, cmd->task[2]);
-	ob_ide_pio_writeb(drive, IDEREG_SECTOR, cmd->task[4]);
-	ob_ide_pio_writeb(drive, IDEREG_LCYL, cmd->task[5]);
-	ob_ide_pio_writeb(drive, IDEREG_HCYL, cmd->task[6]);
+	ob_ide_pio_writeb(drive, IDEREG_NSECTOR, cmd->task[1]);
+	ob_ide_pio_writeb(drive, IDEREG_SECTOR, cmd->task[5]);
+	ob_ide_pio_writeb(drive, IDEREG_LCYL, cmd->task[6]);
+	ob_ide_pio_writeb(drive, IDEREG_HCYL, cmd->task[7]);
+
+	ob_ide_pio_writeb(drive, IDEREG_NSECTOR, cmd->task[0]);
+	ob_ide_pio_writeb(drive, IDEREG_SECTOR, cmd->task[2]);
+	ob_ide_pio_writeb(drive, IDEREG_LCYL, cmd->task[3]);
+	ob_ide_pio_writeb(drive, IDEREG_HCYL, cmd->task[4]);
 
 	if (drive->unit)
 		cmd->device_head |= IDEHEAD_DEV1;
@@ -400,7 +403,10 @@ ob_ide_pio_data_in(struct ide_drive *drive, struct ata_command *cmd)
 		return 1;
 	}
 
-	ob_ide_write_registers(drive, cmd);
+	if (cmd->use_task)
+		ob_ide_write_tasklet(drive, cmd);
+	else
+		ob_ide_write_registers(drive, cmd);
 
 	/*
 	 * now read the data
@@ -746,6 +752,8 @@ ob_ide_read_ata_chs(struct ide_drive *drive, unsigned long long block,
                     unsigned char *buf, unsigned int sectors)
 {
 	struct ata_command *cmd = &drive->channel->ata_cmd;
+	memset(cmd, 0, sizeof(*cmd));
+
 	unsigned int track = (block / drive->sect);
 	unsigned int sect = (block % drive->sect) + 1;
 	unsigned int head = (track % drive->head);
@@ -787,7 +795,7 @@ ob_ide_read_ata_lba28(struct ide_drive *drive, unsigned long long block,
 	cmd->lcyl = block >>= 8;
 	cmd->hcyl = block >>= 8;
 	cmd->device_head = ((block >> 8) & 0x0f);
-	cmd->device_head |= (1 << 6);
+	cmd->device_head |= IDEHEAD_LBA;
 
 	cmd->command = WIN_READ;
 
@@ -808,18 +816,19 @@ ob_ide_read_ata_lba48(struct ide_drive *drive, unsigned long long block,
 	/*
 	 * we are using tasklet addressing here
 	 */
-	cmd->task[2] = sectors;
-	cmd->task[3] = sectors >> 8;
-	cmd->task[4] = block;
-	cmd->task[5] = block >>  8;
-	cmd->task[6] = block >> 16;
-	cmd->task[7] = block >> 24;
-	cmd->task[8] = (u64) block >> 32;
-	cmd->task[9] = (u64) block >> 40;
+	cmd->use_task = 1;
+	cmd->task[0] = sectors;
+	cmd->task[1] = sectors >> 8;
+	cmd->task[2] = block;
+	cmd->task[3] = block >>  8;
+	cmd->task[4] = block >> 16;
+	cmd->task[5] = block >> 24;
+	cmd->task[6] = (u64) block >> 32;
+	cmd->task[7] = (u64) block >> 40;
+
+	cmd->device_head = IDEHEAD_LBA;
 
 	cmd->command = WIN_READ_EXT;
-
-	ob_ide_write_tasklet(drive, cmd);
 
 	return ob_ide_pio_data_in(drive, cmd);
 }
@@ -908,6 +917,7 @@ ob_ide_fixup_id(struct hd_driveid *id)
 	id->sectors = __le16_to_cpu(id->sectors);
 	id->command_set_2 = __le16_to_cpu(id->command_set_2);
 	id->cfs_enable_2 = __le16_to_cpu(id->cfs_enable_2);
+	id->lba_capacity_2 = __le64_to_cpu(id->lba_capacity_2);
 
 	return 0;
 }
@@ -952,6 +962,7 @@ ob_ide_identify_drive(struct ide_drive *drive)
 		if ((id.command_set_2 & 0x0400) && (id.cfs_enable_2 & 0x0400)) {
 			drive->addressing = ide_lba48;
 			drive->max_sectors = 65535;
+			drive->sectors = id.lba_capacity_2;
 		} else
 #endif
 		if (id.capability & 2)
