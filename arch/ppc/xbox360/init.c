@@ -125,6 +125,48 @@ static const pci_arch_t xbox360_arch = {
     .irqs = { 15, 15, 15, 15 }
 };
 
+typedef union {
+    unsigned char   data[16];
+    unsigned long   data32[4];
+} xbox360_smc_msg;
+
+static void
+xbox360_smc_write(xbox360_smc_msg *msg)
+{
+    while ((in_le32((volatile unsigned int*)(XBOX360_SMC_BASE + 0x84)) & 0x4) == 0);
+
+    out_le32((volatile unsigned int*)(XBOX360_SMC_BASE + 0x84), 0x4);
+    for (int i = 0; i < 4; i++) {
+        out_be32((volatile unsigned int*)(XBOX360_SMC_BASE + 0x80), msg->data32[i]);
+    }
+    out_le32((volatile unsigned int*)(XBOX360_SMC_BASE + 0x84), 0x0);
+}
+
+static void
+xbox360_reset_all(void)
+{
+    xbox360_smc_msg msg;
+    bzero (&msg, sizeof (msg));
+
+    msg.data[0] = 0x82;
+    msg.data[1] = 0x04;
+    msg.data[2] = 0x31;
+
+    xbox360_smc_write(&msg);
+}
+
+static void
+xbox360_poweroff(void)
+{
+    xbox360_smc_msg msg;
+    bzero (&msg, sizeof (msg));
+
+    msg.data[0] = 0x82;
+    msg.data[1] = 0x01;
+
+    xbox360_smc_write(&msg);
+}
+
 void
 entry(void)
 {
@@ -519,6 +561,12 @@ arch_of_init(void)
     out_be64((uint64_t*)(XBOX360_IC_VIRT + 0x68), 0);
 
     device_end();
+
+    // Bind poweroff and reset words.
+    bind_func("ppc32-power-off", xbox360_poweroff);
+    feval("['] ppc32-power-off to power-off");
+    bind_func("ppc32-reset-all", xbox360_reset_all);
+    feval("['] ppc32-reset-all to reset-all");
 
     /* Implementation of filll word (required by BootX) */
     bind_func("filll", ffilll);
