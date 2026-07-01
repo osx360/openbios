@@ -91,10 +91,6 @@ new-device
   " rom" device-name
 finish-device
 
-\ -------------------------------------------------------------
-\ Base hardware devices on both Wii and Wii U. Platform-specific items are addeded later.
-\ -------------------------------------------------------------
-
 \ Interrupt controller
 new-device
   " interrupt-controller" device-name
