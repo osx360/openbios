@@ -1312,6 +1312,18 @@ static void ob_pci_add_properties(phandle_t phandle,
 	set_int_property(dev, "class-code", class_code << 8 | class_prog);
 
 #ifdef CONFIG_XBOX360
+    /* Every PCI node addresses its children with 3 address and 2 size cells
+     * (IEEE-1275 PCI binding). Without this a child's assigned-addresses is
+     * decoded with the parent's #address-cells, which defaults to 2 when the
+     * property is absent (e.g. the unmanaged host bridge that parents the
+     * Xenos GPU), while pci-bar>pci-addr (drivers/pci.fs) hardcodes 3. The
+     * mismatch over-pops the Forth data stack when the display's open maps
+     * its BAR, corrupting the adjacent return stack and later faulting as an
+     * "unexpected exception 600". See osx360/osx360-drivers#1. A matched
+     * device's own acells (set below) still overrides this default. */
+    set_int_property(dev, "#address-cells", 3);
+    set_int_property(dev, "#size-cells", 2);
+	
     irq = 0;
     if ((PCI_BUS(config->dev) == 0) && (PCI_DEV(config->dev) == 2) && (PCI_FN(config->dev) == 0)) {
         irq = 0x58;
