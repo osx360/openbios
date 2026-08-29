@@ -108,7 +108,7 @@ int is_newworld(void)
 static const pci_arch_t xbox360_arch = {
     .name = "XENON",
     .vendor_id = PCI_VENDOR_ID_MICROSOFT,
-    .device_id = PCI_DEVICE_ID_MICROSOFT_XENON_HOST_BRIDGE,
+    .device_id = PCI_DEVICE_ID_MICROSOFT_XENON_HOST_XENON,
     .cfg_addr = 0xD0000000,
     .cfg_data = 0xD0000000,
     .cfg_base = 0xD0000000,

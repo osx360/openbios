@@ -459,7 +459,13 @@ static const pci_dev_t hbrg_devices[] = {
     },
 #if defined(CONFIG_XBOX360)
     {
-        PCI_VENDOR_ID_MICROSOFT, PCI_DEVICE_ID_MICROSOFT_XENON_HOST_BRIDGE, NULL,
+        PCI_VENDOR_ID_MICROSOFT, PCI_DEVICE_ID_MICROSOFT_XENON_HOST_XENON, NULL,
+        "pci", "MSFT,XenonPCI", "xenon-pci\0",
+        3, 2, 1,
+        host_config_cb, NULL,
+    },
+    {
+        PCI_VENDOR_ID_MICROSOFT, PCI_DEVICE_ID_MICROSOFT_XENON_HOST_CORONA, NULL,
         "pci", "MSFT,XenonPCI", "xenon-pci\0",
         3, 2, 1,
         host_config_cb, NULL,
