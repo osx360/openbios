@@ -198,7 +198,7 @@ static const struct layout_maps keyboard_layouts[] = {
 	'3', '4', '5', '6', '7', '8', '9', '0',
 	'\n', '\e', '\b', '\t', ' ', '-', '=', '[',
 	/* 0x30 */
-	']', '\\', -1, ';', '\'', '`', ',', '.',
+	']', '\\', '\\', ';', '\'', '`', ',', '.',
 	'/', -1 /* CapsLk */, KEY_F(1), KEY_F(2), KEY_F(3), KEY_F(4), KEY_F(5), KEY_F(6),
 	/* 0x40 */
 	KEY_F(7), KEY_F(8), KEY_F(9), KEY_F(10), KEY_F(11), KEY_F(12), KEY_PRINT, -1 /* ScrLk */,
@@ -207,7 +207,7 @@ static const struct layout_maps keyboard_layouts[] = {
 	KEY_LEFT, KEY_DOWN, KEY_UP, -1 /*NumLck*/, '/', '*', '-' /* = ? */, '+',
 	KEY_ENTER, KEY_END, KEY_DOWN, KEY_NPAGE, KEY_LEFT, -1, KEY_RIGHT, KEY_HOME,
 	/* 60 */
-	KEY_UP, KEY_PPAGE, -1, KEY_DC, -1 /* < > | */, -1 /* Win Key Right */, -1, -1,
+	KEY_UP, KEY_PPAGE, -1, KEY_DC, '\\' /* Non-US \ and | */, -1 /* Win Key Right */, -1, -1,
 	-1, -1, -1, -1, -1, -1, -1, -1,
 	/* 70 */
 	-1, -1, -1, -1, -1, -1, -1, -1,
@@ -223,7 +223,7 @@ static const struct layout_maps keyboard_layouts[] = {
 	'#', '$', '%', '^', '&', '*', '(', ')',
 	'\n', '\e', '\b', '\t', ' ', '_', '+', '{',
 	/* 0x30 */
-	'}', '|', -1, ':', '"', '~', '<', '>',
+	'}', '|', '|', ':', '"', '~', '<', '>',
 	'?', -1 /* CapsLk */, KEY_F(1), KEY_F(2), KEY_F(3), KEY_F(4), KEY_F(5), KEY_F(6),
 	/* 0x40 */
 	KEY_F(7), KEY_F(8), KEY_F(9), KEY_F(10), KEY_F(11), KEY_F(12), KEY_PRINT, -1 /* ScrLk */,
@@ -232,7 +232,7 @@ static const struct layout_maps keyboard_layouts[] = {
 	KEY_LEFT, KEY_DOWN, KEY_UP, -1 /*NumLck*/, '/', '*', '-' /* = ? */, '+',
 	KEY_ENTER, KEY_END, KEY_DOWN, KEY_NPAGE, KEY_LEFT, -1, KEY_RIGHT, KEY_HOME,
 	/* 60 */
-	KEY_UP, KEY_PPAGE, -1, KEY_DC, -1 /* < > | */, -1 /* Win Key Right */, -1, -1,
+	KEY_UP, KEY_PPAGE, -1, KEY_DC, '|'  /* Non-US \ and | */, -1 /* Win Key Right */, -1, -1,
 	-1, -1, -1, -1, -1, -1, -1, -1,
 	/* 70 */
 	-1, -1, -1, -1, -1, -1, -1, -1,
@@ -248,7 +248,7 @@ static const struct layout_maps keyboard_layouts[] = {
 	'3', '4', '5', '6', '7', '8', '9', '0',
 	'\n', '\e', '\b', '\t', ' ', '-', '=', '[',
 	/* 0x30 */
-	']', '\\', -1, ';', '\'', '`', ',', '.',
+	']', '\\', '\\', ';', '\'', '`', ',', '.',
 	'/', -1 /* CapsLk */, KEY_F(1), KEY_F(2), KEY_F(3), KEY_F(4), KEY_F(5), KEY_F(6),
 	/* 0x40 */
 	KEY_F(7), KEY_F(8), KEY_F(9), KEY_F(10), KEY_F(11), KEY_F(12), KEY_PRINT, -1 /* ScrLk */,
@@ -257,7 +257,7 @@ static const struct layout_maps keyboard_layouts[] = {
 	KEY_LEFT, KEY_DOWN, KEY_UP, -1 /*NumLck*/, '/', '*', '-' /* = ? */, '+',
 	KEY_ENTER, KEY_END, KEY_DOWN, KEY_NPAGE, KEY_LEFT, -1, KEY_RIGHT, KEY_HOME,
 	/* 60 */
-	KEY_UP, KEY_PPAGE, -1, KEY_DC, -1 /* < > | */, -1 /* Win Key Right */, -1, -1,
+	KEY_UP, KEY_PPAGE, -1, KEY_DC, '\\' /* Non-US \ and | */, -1 /* Win Key Right */, -1, -1,
 	-1, -1, -1, -1, -1, -1, -1, -1,
 	/* 70 */
 	-1, -1, -1, -1, -1, -1, -1, -1,
@@ -273,7 +273,7 @@ static const struct layout_maps keyboard_layouts[] = {
 	'#', '$', '%', '^', '&', '*', '(', ')',
 	'\n', '\e', '\b', '\t', ' ', '-', '=', '[',
 	/* 0x30 */
-	']', '\\', -1, ':', '\'', '`', ',', '.',
+	']', '\\', '\\', ':', '\'', '`', ',', '.',
 	'/', -1 /* CapsLk */, KEY_F(1), KEY_F(2), KEY_F(3), KEY_F(4), KEY_F(5), KEY_F(6),
 	/* 0x40 */
 	KEY_F(7), KEY_F(8), KEY_F(9), KEY_F(10), KEY_F(11), KEY_F(12), KEY_PRINT, -1 /* ScrLk */,
@@ -282,7 +282,7 @@ static const struct layout_maps keyboard_layouts[] = {
 	KEY_LEFT, KEY_DOWN, KEY_UP, -1 /*NumLck*/, '/', '*', '-' /* = ? */, '+',
 	KEY_ENTER, KEY_END, KEY_DOWN, KEY_NPAGE, KEY_LEFT, -1, KEY_RIGHT, KEY_HOME,
 	/* 60 */
-	KEY_UP, KEY_PPAGE, -1, KEY_DC, -1 /* < > | */, -1 /* Win Key Right */, -1, -1,
+	KEY_UP, KEY_PPAGE, -1, KEY_DC, '\\' /* Non-US \ and | */, -1 /* Win Key Right */, -1, -1,
 	-1, -1, -1, -1, -1, -1, -1, -1,
 	/* 70 */
 	-1, -1, -1, -1, -1, -1, -1, -1,
@@ -355,6 +355,12 @@ usb_hid_process_keyboard_event(usbhid_inst_t *const inst,
 		if (skip)
 			continue;
 
+
+		/* The layout tables hold 0x80 entries. HID usages at or above
+		   0x80 (Japanese, Korean and other international keys) would
+		   index past the end of the map. */
+		if (current->keys[i] >= 0x80)
+			continue;
 
 		/* Mask off MOD_CTRL */
 		keypress = map->map[modifiers & 0x03][current->keys[i]];
@@ -445,6 +451,13 @@ static int usb_hid_set_layout (const char *country)
 		usb_debug("  Keyboard layout '%s'\n", map->country);
 		return 0;
 	}
+
+	/* Nothing matched. Fall back to the first layout instead of leaving
+	   map NULL: the keypress path dereferences it unconditionally, so a
+	   keyboard reporting any country code other than "us" -- the only
+	   layout built in -- would take the firmware down on first key. */
+	if (map == NULL)
+		map = &keyboard_layouts[0];
 
 	usb_debug("  Keyboard layout '%s' not found, using '%s'\n",
 			country, map->country);
