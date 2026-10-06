@@ -230,7 +230,7 @@
 #define GPTE_Flags			48		/* GPT PTE: Partition flags (QWORD) */
 #define GPTE_Name			56		/* GPT PTE: Partition name */
 
-
+#define NOT_UNSUPPORTED_APM_PARTS			strncmp(curPart->type,"Apple_Boot",10) && strncmp(curPart->type,"Apple_Driver",12) && strncmp(curPart->type,"Apple_Driver",12) && strncmp(curPart->type,"Apple_Free",10) && strncmp(curPart->type,"Apple_Extra",11)
 /* Post process on fatal error in the file operations */
 #define ABORT(fs, res)		{ fp->err = (BYTE)(res); LEAVE_FF(fs, res); }
 
@@ -603,7 +603,17 @@ static const BYTE DbcTbl[] = MKCVTBL(TBL_DC, FF_CODE_PAGE);
 
 #endif
 
-
+//APM Partition Entry struct. Yes, I don't need it, but it would be a pain in the ass to manually manage this.
+typedef struct {
+    WORD sig;
+    WORD reserved0;
+    DWORD numParts;
+    DWORD startBlock;
+    DWORD partSize;
+    char name[32];
+    char type[32];
+    //We don't need the rest.'
+} __attribute__((__packed__)) APM_PARTITION_ENTRY;
 
 
 /*--------------------------------------------------------------------------
@@ -636,6 +646,26 @@ static DWORD ld_32 (const BYTE* ptr)	/* Load a 4-byte little-endian word */
 	rv = rv << 8 | ptr[0];
 	return rv;
 }
+
+static WORD ld_B16 (const BYTE* ptr) //Load a 2 byte big-endian word. So kinda just load a 2 byte word in
+{
+    WORD rv;
+    rv = ptr[0];
+    rv = rv | ptr[1];
+    return rv;
+}
+
+/*
+static DWORD ld_B32 (const BYTE* ptr) //Load a 2 byte big-endian word. So kinda just load a 2 byte word in
+{
+    DWORD rv;
+    rv = ptr[0];
+    rv = rv | ptr[1];
+    rv = rv | ptr[2];
+    rv = rv | ptr[3];
+    return rv;
+}
+*/
 
 #if FF_FS_EXFAT
 static QWORD ld_64 (const BYTE* ptr)	/* Load an 8-byte little-endian word */
@@ -3395,6 +3425,32 @@ static UINT find_volume (	/* Returns BS status found in the hosting drive */
 	do {							/* Find an FAT volume */
 		fmt = mbr_pt[i] ? check_fs(fs, mbr_pt[i]) : 3;	/* Check if the partition is FAT */
 	} while (part == 0 && fmt >= 2 && ++i < 4);
+
+    //Check if Using Apple Partition Map
+	APM_PARTITION_ENTRY* curPart;
+    move_window(fs,0);
+    if (fs->win[0] == 'E' && fs->win[1] == 'R') { //Yep, it is!
+        WORD blockSize = ld_B16(fs->win + 2); // where the blockSize argument is;
+        WORD secSize = FF_MAX_SS;
+        #if FF_MAX_SS != FF_MIN_SS
+        secSize = fs->ssize; //Thankfully, here we are guaranteed multiples of 512.
+        #endif
+        DWORD numParts = 10; // will Change
+        for (DWORD curBlock = 1; curBlock < numParts; curBlock++) {
+            QWORD curSector = curBlock * blockSize / secSize;
+            WORD z = (curBlock * blockSize % secSize) / 512;
+            move_window(fs,curSector); //can't minimize these since fmt changes when we check_fs
+            curPart = (APM_PARTITION_ENTRY*) (fs->win + 512 * z); //window must be 512 bytes+ and this struct is less
+            numParts = curPart->numParts;
+            if (NOT_UNSUPPORTED_APM_PARTS) {
+                //This could be what we're looking for!
+                fmt = check_fs(fs, curSector * secSize / 512 + z);
+                if(fmt < 2) return fmt;
+            }
+            
+        }
+
+    }
 	return fmt;
 }
 
