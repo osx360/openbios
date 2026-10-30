@@ -19,9 +19,11 @@
 /----------------------------------------------------------------------------*/
 
 
-#include <string.h>
+
 #include "ff.h"			/* Declarations of FatFs API */
 #include "diskio.h"		/* Declarations of device I/O functions */
+#include "libc/vsprintf.h"
+#include "libopenbios/console.h"
 
 
 /*--------------------------------------------------------------------------
@@ -230,6 +232,8 @@
 #define GPTE_Flags			48		/* GPT PTE: Partition flags (QWORD) */
 #define GPTE_Name			56		/* GPT PTE: Partition name */
 
+//Apple_HFS can have a FAT32 partition, and for some reason, partitioning software can put a FAT32 Part in Apple_UFS
+#define NOT_UNSUPPORTED_APM_PARTS			strncmp(curPart->type,"Apple_",6) || curPart->type[6] == 'U' || curPart->type[6] == 'H'
 
 /* Post process on fatal error in the file operations */
 #define ABORT(fs, res)		{ fp->err = (BYTE)(res); LEAVE_FF(fs, res); }
@@ -603,7 +607,17 @@ static const BYTE DbcTbl[] = MKCVTBL(TBL_DC, FF_CODE_PAGE);
 
 #endif
 
-
+//APM Partition Entry struct. Yes, I don't need it, but it would be a pain in the ass to manually manage this.
+typedef struct {
+    WORD sig;
+    WORD reserved0;
+    DWORD numParts;
+    DWORD startBlock;
+    DWORD partSize;
+    char name[32];
+    char type[32];
+    //We don't need the rest.'
+} __attribute__((__packed__)) APM_PARTITION_ENTRY;
 
 
 /*--------------------------------------------------------------------------
@@ -636,6 +650,27 @@ static DWORD ld_32 (const BYTE* ptr)	/* Load a 4-byte little-endian word */
 	rv = rv << 8 | ptr[0];
 	return rv;
 }
+
+/*
+static WORD ld_B16 (const BYTE* ptr) //Load a 2 byte big-endian word. So kinda just load a 2 byte word in
+{
+    WORD rv;
+    rv = ptr[0];
+    rv = rv | ptr[1];
+    return rv;
+}
+
+
+static DWORD ld_B32 (const BYTE* ptr) //Load a 2 byte big-endian word. So kinda just load a 2 byte word in
+{
+    DWORD rv;
+    rv = ptr[0];
+    rv = rv | ptr[1];
+    rv = rv | ptr[2];
+    rv = rv | ptr[3];
+    return rv;
+}
+*/
 
 #if FF_FS_EXFAT
 static QWORD ld_64 (const BYTE* ptr)	/* Load an 8-byte little-endian word */
@@ -1097,6 +1132,7 @@ static FRESULT move_window (	/* Returns FR_OK or FR_DISK_ERR */
 			fs->winsect = sect;
 		}
 	}
+	__asm__("sync"); //ensure all data has been transfered before moving on.
 	return res;
 }
 
@@ -3356,13 +3392,48 @@ static UINT find_volume (	/* Returns BS status found in the hosting drive */
 	UINT part		/* Partition to fined = 0:find as SFD and partitions, >0:forced partition number */
 )
 {
-	UINT fmt, i;
-	DWORD mbr_pt[4];
+	UINT fmt;
+    //Check if Using Apple Partition Map. Check first to save some time when launching off a drive
+	//(if launching off a mac os drive, it must use APM, so this saves a bit of time for those booting off of an actual install.)
+	APM_PARTITION_ENTRY* curPart;
+    move_window(fs,0);
+    if (fs->win[0] == 'E' && fs->win[1] == 'R') { //Yep, it is!
+		curPart = (APM_PARTITION_ENTRY*) (fs->win); //technically not the drive descriptor, but reserved0 is where the blocksize would be.
+        WORD blockSize = curPart->reserved0;
+        
+        //Grab the first partition and set numParts using it.
+        if(move_window(fs,blockSize/512) != FR_OK){return 4;}
+        curPart = (APM_PARTITION_ENTRY*) (fs->win); //window must be 512 bytes+ and this struct is less
+        DWORD numParts = curPart->numParts;
 
+		if(part){
+			if (part > numParts) return 3;
+			//We only need to check one partition, and we know where it is. So just check it and return the value of check_fs!
+			if(move_window(fs,(part * blockSize) / 512) != FR_OK) return 4;
+			curPart = (APM_PARTITION_ENTRY*) (fs->win);
+			return check_fs(fs, curPart->startBlock * blockSize/512);
+		}
+
+        for (DWORD curBlock = 1; curBlock <= numParts; curBlock++) {
+            if(move_window(fs,(curBlock * blockSize) / 512) != FR_OK) return 4; 
+            curPart = (APM_PARTITION_ENTRY*) (fs->win);
+            
+            if (NOT_UNSUPPORTED_APM_PARTS) {
+                //This could be what we're looking for!
+                fmt = check_fs(fs, curPart->startBlock * blockSize/512);
+                if(fmt < 2) return fmt;
+            }
+            
+        }
+        return 3; //Not found
+    }
+
+	UINT i;
+	
+	DWORD mbr_pt[4];
 
 	fmt = check_fs(fs, 0);				/* Load sector 0 and check if it is an FAT VBR as SFD format */
 	if (fmt != 2 && (fmt >= 3 || part == 0)) return fmt;	/* Returns if it is an FAT VBR as auto scan, not a BS or disk error */
-
 	/* Sector 0 is not an FAT VBR or forced partition number wants a partition */
 
 #if FF_LBA64
@@ -3387,14 +3458,16 @@ static UINT find_volume (	/* Returns BS status found in the hosting drive */
 		return 3;	/* Not found */
 	}
 #endif
-	if (FF_MULTI_PARTITION && part > 4) return 3;	/* MBR has 4 partitions max */
 	for (i = 0; i < 4; i++) {		/* Load partition offset in the MBR */
 		mbr_pt[i] = ld_32(fs->win + MBR_Table + i * SZ_PTE + PTE_StLba);
 	}
+    if (FF_MULTI_PARTITION && part > 4) return 3;	/* MBR has 4 partitions max */
 	i = part ? part - 1 : 0;		/* Table index to find first */
 	do {							/* Find an FAT volume */
 		fmt = mbr_pt[i] ? check_fs(fs, mbr_pt[i]) : 3;	/* Check if the partition is FAT */
 	} while (part == 0 && fmt >= 2 && ++i < 4);
+
+    
 	return fmt;
 }
 
